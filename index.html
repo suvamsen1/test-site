@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Namaste World</title>
     <style>
-        /* Import Futuristic Fonts from Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@300;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;600;700&display=swap');
 
         * {
             margin: 0;
@@ -15,156 +14,337 @@
         }
 
         body {
+            background-color: #030408; /* Very dark deep blue/black */
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #030305;
-            /* Cyberpunk/Tech Grid Background */
-            background-image: 
-                radial-gradient(circle at 50% 50%, #121220 0%, #030305 70%),
-                linear-gradient(0deg, transparent 24%, rgba(0, 255, 255, 0.03) 25%, rgba(0, 255, 255, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, 0.03) 75%, rgba(0, 255, 255, 0.03) 76%, transparent 77%, transparent),
-                linear-gradient(90deg, transparent 24%, rgba(0, 255, 255, 0.03) 25%, rgba(0, 255, 255, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, 0.03) 75%, rgba(0, 255, 255, 0.03) 76%, transparent 77%, transparent);
-            background-size: 100% 100%, 60px 60px, 60px 60px;
-            font-family: 'Space Grotesk', sans-serif;
-            color: #ffffff;
             overflow: hidden;
             position: relative;
+            background-image: radial-gradient(circle at center, transparent 0%, #000000 100%);
         }
 
-        /* Ambient Background Orbs */
-        .ambient-orb {
+        .noise-overlay {
             position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* The source of the light at the bottom */
+        .bottom-emission {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 55vh;
+            background: linear-gradient(to top, rgba(0, 80, 255, 0.4) 0%, rgba(0, 150, 255, 0.1) 40%, transparent 100%);
             z-index: 0;
-        }
-        
-        .orb-cyan {
-            width: 400px;
-            height: 400px;
-            background: rgba(0, 255, 255, 0.15);
-            top: -10%;
-            left: -10%;
+            pointer-events: none;
+            filter: blur(40px);
+            animation: diffuse-pulse 6s infinite alternate ease-in-out;
+            mix-blend-mode: screen;
         }
 
-        .orb-magenta {
-            width: 500px;
-            height: 500px;
-            background: rgba(255, 0, 85, 0.1);
-            bottom: -20%;
-            right: -10%;
+        .grok-beam {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120vw;
+            height: 30vh;
+            background: radial-gradient(ellipse at center, rgba(100, 180, 255, 0.1) 0%, rgba(50, 100, 255, 0.02) 40%, transparent 70%);
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            animation: beam-pulse 8s infinite alternate ease-in-out;
         }
 
-        /* Glassmorphism Container */
-        .container {
-            position: relative;
+        #network-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 1;
-            text-align: center;
-            padding: 4rem 5rem;
-            background: rgba(15, 15, 25, 0.5);
-            border: 1px solid rgba(0, 255, 255, 0.15);
+            /* Add blend mode to make particles pop against the blue light */
+            mix-blend-mode: screen;
+        }
+
+        /* Glass Panel with Physical Light Simulation */
+        .glass-panel {
+            position: relative;
+            z-index: 10;
+            /* Gradient implies light traveling up through the glass */
+            background: linear-gradient(180deg, rgba(15, 15, 20, 0.4) 0%, rgba(15, 30, 60, 0.6) 100%);
+            
+            /* Edge light simulation: Bottom edge catches strong blue light, top edge reflects subtle white */
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            border-right: 1px solid rgba(0, 100, 255, 0.1);
+            border-bottom: 2px solid rgba(0, 150, 255, 0.6); /* Strong edge glow at the bottom */
+            
             border-radius: 24px;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            box-shadow: 
-                0 0 40px rgba(0, 0, 0, 0.8), 
-                inset 0 0 20px rgba(0, 255, 255, 0.05);
-            animation: float 6s ease-in-out infinite;
+            padding: 4rem 5rem;
             max-width: 650px;
             width: 90%;
+            text-align: center;
+            
+            /* Refraction simulation */
+            backdrop-filter: blur(40px) brightness(1.1);
+            -webkit-backdrop-filter: blur(40px) brightness(1.1);
+            
+            /* Shadows: Drop shadow + Internal glow from the bottom light source */
+            box-shadow: 
+                0 40px 80px rgba(0, 0, 0, 0.9), 
+                0 10px 40px rgba(0, 100, 255, 0.25), /* Ambient blue spill from bottom */
+                inset 0 -25px 50px rgba(0, 120, 255, 0.2), /* Light entering the glass bottom */
+                inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Top inner reflection */
+                
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+            animation: float-panel 8s infinite ease-in-out;
         }
 
-        /* Glowing Main Heading */
+        /* Simulates light reflecting intensely off the very bottom edge bevel */
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.8), transparent);
+            filter: blur(4px);
+            opacity: 0.8;
+            z-index: -1;
+        }
+
+        .glass-panel:hover {
+            transform: scale(1.02) translateY(-10px);
+            box-shadow: 
+                0 50px 100px rgba(0, 0, 0, 0.95), 
+                0 20px 50px rgba(0, 100, 255, 0.35),
+                inset 0 -30px 60px rgba(0, 150, 255, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        /* Typography reacting to light */
         h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: clamp(2.5rem, 5vw, 4.5rem);
-            font-weight: 900;
-            color: #ffffff;
-            text-transform: uppercase;
-            letter-spacing: 6px;
-            margin-bottom: 2rem;
-            text-shadow: 
-                0 0 10px rgba(0, 255, 255, 0.8),
-                0 0 20px rgba(0, 255, 255, 0.6),
-                0 0 40px rgba(0, 255, 255, 0.4);
-            animation: pulse-glow 3s ease-in-out infinite alternate;
-        }
-
-        /* Body Text Styling */
-        .message-box {
-            font-size: 1.25rem;
-            line-height: 1.8;
-            color: #a0a0b8;
-            font-weight: 300;
-            letter-spacing: 1.5px;
-        }
-
-        .alert-text {
-            display: inline-block;
-            color: #ff0055;
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 6vw, 4rem);
             font-weight: 700;
-            font-size: 1.6rem;
-            letter-spacing: 3px;
-            margin: 1.2rem 0;
-            text-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
-            animation: flicker 4s linear infinite;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+            
+            /* Text color gradients from white top to bright blueish-white bottom */
+            background: linear-gradient(180deg, #ffffff 0%, #a0c0ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            
+            /* Sub-surface scattering / Glow */
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.8)) drop-shadow(0 4px 10px rgba(0, 100, 255, 0.3));
+        }
+
+        .message {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            /* Text catches subtle ambient blue light */
+            color: #b0c4de; 
+            font-weight: 300;
+            letter-spacing: 0.02em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .alert {
+            display: inline-block;
+            margin: 1.5rem 0;
+            padding: 0.6rem 1.5rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #ff3344;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            
+            background: rgba(255, 0, 0, 0.05);
+            /* Alert border also catches bottom light slightly */
+            border: 1px solid rgba(255, 50, 50, 0.2);
+            border-bottom: 2px solid rgba(255, 80, 80, 0.4);
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.1), inset 0 -5px 10px rgba(255, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .alert::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,100,100,0.2), transparent);
+            animation: scan 3s infinite linear;
         }
 
         .signature {
             display: block;
             margin-top: 2.5rem;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.1rem;
-            color: #00ffff;
-            font-weight: 500;
-            letter-spacing: 4px;
-            opacity: 0.9;
+            font-size: 0.9rem;
+            color: #6080a0;
+            font-weight: 400;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
 
-        /* Keyframe Animations */
-        @keyframes float {
+        @keyframes diffuse-pulse {
+            0% { opacity: 0.6; transform: translateY(2%); filter: blur(40px) brightness(0.9); }
+            100% { opacity: 1; transform: translateY(-2%); filter: blur(45px) brightness(1.2); }
+        }
+
+        @keyframes beam-pulse {
+            0% { transform: translate(-50%, -50%) scaleX(1) scaleY(1); opacity: 0.5; }
+            100% { transform: translate(-50%, -50%) scaleX(1.1) scaleY(1.2); opacity: 0.8; }
+        }
+
+        @keyframes float-panel {
             0% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-8px); }
             100% { transform: translateY(0px); }
         }
 
-        @keyframes pulse-glow {
-            0% { 
-                text-shadow: 0 0 10px rgba(0, 255, 255, 0.7), 0 0 20px rgba(0, 255, 255, 0.5); 
-            }
-            100% { 
-                text-shadow: 0 0 15px rgba(0, 255, 255, 1), 0 0 30px rgba(0, 255, 255, 0.8), 0 0 50px rgba(0, 255, 255, 0.6); 
-            }
+        @keyframes scan {
+            0% { left: -100%; }
+            100% { left: 200%; }
         }
 
-        @keyframes flicker {
-            0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% {
-                opacity: 1;
-                text-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
-            }
-            20%, 21.999%, 63%, 63.999%, 65%, 69.999% {
-                opacity: 0.4;
-                text-shadow: none;
-            }
+        @media (max-width: 600px) {
+            .glass-panel { padding: 3rem 2rem; border-radius: 20px; width: 88%; }
+            .message { font-size: 1rem; line-height: 1.6; }
+            .alert { font-size: 0.95rem; padding: 0.5rem 1.2rem; }
+            h1 { letter-spacing: -0.02em; }
         }
     </style>
 </head>
 <body>
-    <!-- Ambient glowing lights -->
-    <div class="ambient-orb orb-cyan"></div>
-    <div class="ambient-orb orb-magenta"></div>
+    <div class="noise-overlay"></div>
+    <div class="bottom-emission"></div>
+    <div class="grok-beam"></div>
+    <canvas id="network-canvas"></canvas>
 
-    <!-- Main Content -->
-    <div class="container">
+    <div class="glass-panel">
         <h1>Namaste World !!</h1>
-        <div class="message-box">
+        <div class="message">
             If you visited this website,<br>
-            <span class="alert-text">CLOSE IT ASAP.</span><br>
+            <span class="alert">CLOSE IT ASAP.</span><br>
             We don't entertain visitors here...<br>
             <span class="signature">~Suvam Sen</span>
         </div>
     </div>
+
+    <script>
+        const canvas = document.getElementById('network-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles;
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            
+            const count = Math.floor((width * height) / 10000); // More particles for the ascending energy effect
+            
+            for (let i = 0; i < count; i++) {
+                // Initialize particles across the screen for the first load
+                particles.push(createParticle(true));
+            }
+        }
+
+        function createParticle(randomY = false) {
+            // Emits from the bottom area
+            return {
+                x: Math.random() * width,
+                y: randomY ? Math.random() * height : height + Math.random() * 20, // Start slightly below screen if not randomY
+                baseX: Math.random() * width,
+                size: Math.random() * 2 + 0.5,
+                speedY: Math.random() * 1.5 + 0.5, // Move upwards
+                drift: Math.random() * 2 - 1,
+                angle: Math.random() * Math.PI * 2,
+                angleSpeed: Math.random() * 0.02,
+                opacity: Math.random() * 0.5 + 0.5,
+                // Bright blue/white color for the energy
+                color: Math.random() > 0.5 ? 'rgba(150, 200, 255' : 'rgba(200, 230, 255' 
+            };
+        }
+
+        window.addEventListener('resize', init);
+        init();
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            particles.forEach((p, index) => {
+                // Move upwards
+                p.y -= p.speedY;
+                
+                // Brownian motion / swaying
+                p.angle += p.angleSpeed;
+                p.x += Math.sin(p.angle) * p.drift * 0.5;
+
+                // Opacity fades as they go up (losing energy)
+                const relativeHeight = Math.max(0, p.y / height);
+                // Intense at bottom (relativeHeight = 1), fades at top (relativeHeight = 0)
+                const currentOpacity = p.opacity * Math.pow(relativeHeight, 0.5);
+
+                // Draw Particle with glow
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `${p.color}, ${currentOpacity})`;
+                ctx.fill();
+
+                // If particle goes above screen, reset it at the bottom
+                if (p.y < -50) {
+                    particles[index] = createParticle(false);
+                }
+            });
+
+            // Draw Connections for ascending network
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        
+                        // Opacity based on distance AND height (fade out as they go up)
+                        const avgY = (particles[i].y + particles[j].y) / 2;
+                        const heightFade = Math.max(0, avgY / height);
+                        const distFade = 1 - (dist / 100);
+                        
+                        ctx.strokeStyle = `rgba(100, 180, 255, ${distFade * heightFade * 0.4})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
 </body>
 </html>
